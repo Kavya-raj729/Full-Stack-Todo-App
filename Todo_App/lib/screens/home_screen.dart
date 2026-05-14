@@ -60,9 +60,13 @@ class _HomeScreenState
       return;
     }
 
+    String taskTitle =
+        '${tasks.length + 1}. '
+        '${taskController.text.trim()}';
+
     bool success =
     await ApiService.createTask(
-      taskController.text.trim(),
+      taskTitle,
     );
 
     if (success) {
