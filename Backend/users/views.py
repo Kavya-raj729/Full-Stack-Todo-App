@@ -3,7 +3,6 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from .serializers import RegisterSerializer
 
 from django.contrib.auth.models import User
@@ -91,3 +90,53 @@ def login_api(request):
         },
         status=status.HTTP_401_UNAUTHORIZED
     )
+
+
+# =========================
+# LOGOUT API
+# =========================
+
+@api_view(['POST'])
+def logout_api(request):
+
+    print("REQUEST DATA:")
+    print(request.data)
+
+    try:
+
+        refresh_token = request.data.get(
+            'refresh'
+        )
+
+        print("REFRESH TOKEN:")
+        print(refresh_token)
+
+        token = RefreshToken(
+            refresh_token
+        )
+
+        token.blacklist()
+
+        print(
+            "USER LOGGED OUT SUCCESSFULLY"
+        )
+
+        return Response(
+            {
+                'message':
+                    'Logout Successful'
+            },
+            status=status.HTTP_205_RESET_CONTENT
+        )
+
+    except Exception as e:
+
+        print("LOGOUT ERROR:")
+        print(str(e))
+
+        return Response(
+            {
+                'error': str(e)
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )

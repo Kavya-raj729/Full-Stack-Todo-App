@@ -8,17 +8,13 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() =>
-      _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState
-    extends State<HomeScreen> {
-
+class _HomeScreenState extends State<HomeScreen> {
   List<dynamic> tasks = [];
 
-  final taskController =
-  TextEditingController();
+  final taskController = TextEditingController();
 
   bool isLoading = true;
 
@@ -34,13 +30,11 @@ class _HomeScreenState
   // =========================
 
   Future<void> loadTasks() async {
-
     setState(() {
       isLoading = true;
     });
 
-    final fetchedTasks =
-    await ApiService.getTasks();
+    final fetchedTasks = await ApiService.getTasks();
 
     setState(() {
       tasks = fetchedTasks;
@@ -53,10 +47,7 @@ class _HomeScreenState
   // =========================
 
   Future<void> addTask() async {
-
-    if (taskController.text
-        .trim()
-        .isEmpty) {
+    if (taskController.text.trim().isEmpty) {
       return;
     }
 
@@ -64,13 +55,9 @@ class _HomeScreenState
         '${tasks.length + 1}. '
         '${taskController.text.trim()}';
 
-    bool success =
-    await ApiService.createTask(
-      taskTitle,
-    );
+    bool success = await ApiService.createTask(taskTitle);
 
     if (success) {
-
       taskController.clear();
 
       await loadTasks();
@@ -81,21 +68,11 @@ class _HomeScreenState
   // DELETE TASK
   // =========================
 
-  Future<void> deleteTask(
-      int id,
-      ) async {
-
-    bool success =
-    await ApiService.deleteTask(
-      id,
-    );
+  Future<void> deleteTask(int id) async {
+    bool success = await ApiService.deleteTask(id);
 
     if (success) {
-
-      tasks.removeWhere(
-            (task) =>
-        task['id'] == id,
-      );
+      tasks.removeWhere((task) => task['id'] == id);
 
       setState(() {});
     }
@@ -106,93 +83,61 @@ class _HomeScreenState
   // =========================
 
   Future<void> logout() async {
+    bool success = await ApiService.logout();
 
-    SharedPreferences prefs =
-    await SharedPreferences
-        .getInstance();
+    if (success) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    await prefs.clear();
+      await prefs.clear();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-        const LoginScreen(),
-      ),
-          (route) => false,
-    );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
       appBar: AppBar(
-
-        title: const Text(
-          'Todo App',
-        ),
+        title: const Text('Todo App'),
 
         centerTitle: true,
 
         actions: [
-
-          IconButton(
-
-            onPressed: logout,
-
-            icon: const Icon(
-              Icons.logout,
-            ),
-          )
+          IconButton(onPressed: logout, icon: const Icon(Icons.logout)),
         ],
       ),
 
       body: Padding(
-
-        padding:
-        const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
 
         child: Column(
           children: [
-
             // ===================
             // ADD TASK
             // ===================
-
             Row(
               children: [
-
                 Expanded(
                   child: TextField(
+                    controller: taskController,
 
-                    controller:
-                    taskController,
-
-                    decoration:
-                    InputDecoration(
-
-                      hintText:
-                      'Add New Task',
+                    decoration: InputDecoration(
+                      hintText: 'Add New Task',
 
                       filled: true,
 
-                      fillColor:
-                      Colors.white,
+                      fillColor: Colors.white,
 
-                      border:
-                      OutlineInputBorder(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
 
-                        borderRadius:
-                        BorderRadius.circular(
-                          12,
-                        ),
-
-                        borderSide:
-                        BorderSide.none,
+                        borderSide: BorderSide.none,
                       ),
                     ),
                   ),
@@ -201,12 +146,8 @@ class _HomeScreenState
                 const SizedBox(width: 10),
 
                 ElevatedButton(
-
-                  style:
-                  ElevatedButton.styleFrom(
-
-                    padding:
-                    const EdgeInsets.symmetric(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 18,
                     ),
@@ -214,10 +155,8 @@ class _HomeScreenState
 
                   onPressed: addTask,
 
-                  child: const Text(
-                    'Add',
-                  ),
-                )
+                  child: const Text('Add'),
+                ),
               ],
             ),
 
@@ -226,92 +165,55 @@ class _HomeScreenState
             // ===================
             // TASK LIST
             // ===================
-
             Expanded(
-
               child: isLoading
-
-                  ? const Center(
-                child:
-                CircularProgressIndicator(),
-              )
-
+                  ? const Center(child: CircularProgressIndicator())
                   : tasks.isEmpty
-
                   ? const Center(
-                child: Text(
-                  'No Tasks Yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                  ),
-                ),
-              )
-
+                      child: Text(
+                        'No Tasks Yet',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    )
                   : ListView.builder(
+                      itemCount: tasks.length,
 
-                itemCount:
-                tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = tasks[index];
 
-                itemBuilder:
-                    (context, index) {
+                        return Card(
+                          elevation: 3,
 
-                  final task =
-                  tasks[index];
+                          margin: const EdgeInsets.only(bottom: 15),
 
-                  return Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
 
-                    elevation: 3,
+                          child: ListTile(
+                            leading: const Icon(
+                              Icons.task_alt,
+                              color: Colors.deepPurple,
+                            ),
 
-                    margin:
-                    const EdgeInsets.only(
-                      bottom: 15,
+                            title: Text(
+                              task['title'],
+
+                              style: const TextStyle(fontSize: 18),
+                            ),
+
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+
+                              onPressed: () {
+                                deleteTask(task['id']);
+                              },
+                            ),
+                          ),
+                        );
+                      },
                     ),
-
-                    shape:
-                    RoundedRectangleBorder(
-
-                      borderRadius:
-                      BorderRadius.circular(
-                        16,
-                      ),
-                    ),
-
-                    child: ListTile(
-
-                      leading: const Icon(
-                        Icons.task_alt,
-                        color: Colors.deepPurple,
-                      ),
-
-                      title: Text(
-
-                        task['title'],
-
-                        style: const TextStyle(
-                          fontSize: 18,
-                        ),
-                      ),
-
-                      trailing:
-                      IconButton(
-
-                        icon: const Icon(
-                          Icons.delete,
-                          color: Colors.red,
-                        ),
-
-                        onPressed: () {
-
-                          deleteTask(
-                            task['id'],
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            )
+            ),
           ],
         ),
       ),
