@@ -1,0 +1,26 @@
+# Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+
+# Android
+android/.gradle/
+android/app/build/
+
+# iOS
+ios/Pods/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+db.sqlite3
+
+# IDE
+.idea/
+.vscode/
+
+# Mac
+.DS_Store

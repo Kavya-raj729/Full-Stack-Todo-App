@@ -1,0 +1,57 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Register</title>
+
+    <link rel="stylesheet" href="{% static 'users/css/style1.css' %}">
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1 class="heading">
+            Welcome to Todo App
+        </h1>
+
+        <p class="sub-heading">
+            Create your account
+        </p>
+
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST">
+
+            {% csrf_token %}
+
+            <input type="text" name="username" placeholder="Username" class="input-box">
+
+            <input type="password" name="password" placeholder="Password" class="input-box">
+
+            <input type="password" name="confirm_password" placeholder="Confirm Password" class="input-box">
+
+            <button type="submit" class="btn">
+                Register
+            </button>
+
+        </form>
+
+        <p class="link-text">
+            Already have account?
+            <a href="/">
+                Login
+            </a>
+        </p>
+
+    </div>
+
+</body>
+
+</html>
