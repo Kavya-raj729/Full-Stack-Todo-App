@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from django.urls import path, include
 
 from rest_framework_simplejwt.views import (
@@ -13,7 +14,8 @@ urlpatterns = [
     path('tasks/', include('tasks.urls')),
 
     path('users/', include('users.urls')),
-
+    path('github/',include('github_api.urls')),
+    # path("auth/github/", include("github_auth.urls")),
     # JWT Routes
     path(
         'api/token/',
