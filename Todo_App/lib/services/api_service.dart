@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // CHANGE IP
-  static const String baseUrl = 'http://192.168.110.196:8000';
+  static const String baseUrl = 'http://YOURIP:8000';
 
   // =========================
   // LOGIN
