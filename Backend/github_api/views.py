@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from decouple import config
-
+import logging
 from django.core.cache import cache
 # GITHUB_CLIENT_ID = os.environ.get('CLIENT_ID')
 # GITHUB_CLIENT_SECRET = os.environ.get('CLIENT_SECRET')
@@ -55,6 +55,20 @@ from django.core.cache import cache
 #         "token": access_token,
 #         "user": user_data,
 #     })
+
+
+logger = logging.getLogger(__name__)
+
+def home(request):
+    logger.info("Home API called")
+    return JsonResponse({"message": "Hello"})
+
+
+
+
+
+
+
 
 
 

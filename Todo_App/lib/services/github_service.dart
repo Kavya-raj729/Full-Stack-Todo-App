@@ -3,21 +3,28 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GithubService {
-  static const String baseUrl = 'http://YOUR_IP:8000';
+  static const String baseUrl = 'http://192.168.110.196:8000';
 
   // =========================
   // PROFILE
   // =========================
 
   static Future<Map<String, dynamic>?> fetchProfile(String username) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/github/profile/$username/'),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/github/profile/$username/'),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('Profile data: $data');
+        return data;
+      } else {
+        print('Profile fetch error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Profile fetch exception: $e');
     }
-
     return null;
   }
 
@@ -29,14 +36,21 @@ class GithubService {
     String owner,
     String repo,
   ) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/github/repo/$owner/$repo/'),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/github/repo/$owner/$repo/'),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('Repo data: $data');
+        return data;
+      } else {
+        print('Repo fetch error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Repo fetch exception: $e');
     }
-
     return null;
   }
 
@@ -48,14 +62,23 @@ class GithubService {
     String owner,
     String repo,
   ) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/github/languages/$owner/$repo/'),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/github/languages/$owner/$repo/'),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('Languages data: $data');
+        return data;
+      } else {
+        print(
+          'Languages fetch error: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      print('Languages fetch exception: $e');
     }
-
     return null;
   }
 
@@ -64,14 +87,23 @@ class GithubService {
   // =========================
 
   static Future<List<dynamic>?> fetchUserRepos(String username) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/github/repos/$username/'),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/github/repos/$username/'),
+      );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('User repos data: $data');
+        return data;
+      } else {
+        print(
+          'User repos fetch error: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      print('User repos fetch exception: $e');
     }
-
     return null;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 
 import '../services/api_service.dart';
 import '../services/github_service.dart';
@@ -20,13 +21,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Map<String, dynamic>? languages;
 
+  Map<String, dynamic>? aiPortfolio;
+
   List<dynamic> repos = [];
 
   final usernameController = TextEditingController();
 
+  final profileUsernameController = TextEditingController();
+
   final repoController = TextEditingController();
 
   bool isLoading = false;
+
+  bool isGeneratingAI = false;
 
   // =========================
   // LOGOUT
@@ -44,9 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-
         MaterialPageRoute(builder: (_) => const LoginScreen()),
-
         (route) => false,
       );
     }
@@ -57,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // =========================
 
   Future<void> analyzeProfile() async {
-    if (usernameController.text.trim().isEmpty) {
+    if (profileUsernameController.text.trim().isEmpty) {
       return;
     }
 
@@ -66,24 +71,22 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     final data = await GithubService.fetchProfile(
-      usernameController.text.trim(),
+      profileUsernameController.text.trim(),
     );
 
     final repoData = await GithubService.fetchUserRepos(
-      usernameController.text.trim(),
+      profileUsernameController.text.trim(),
     );
 
     setState(() {
       profile = data;
-
       repos = repoData ?? [];
-
       isLoading = false;
     });
   }
 
   // =========================
-  // ANALYZE REPO
+  // ANALYZE REPOSITORY
   // =========================
 
   Future<void> analyzeRepo() async {
@@ -98,15 +101,11 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final url = repoController.text.trim();
 
-      print(url);
-
       Uri uri = Uri.parse(url);
 
       final segments = uri.pathSegments;
 
       if (segments.length < 2) {
-        print('Invalid Repo URL');
-
         setState(() {
           isLoading = false;
         });
@@ -118,16 +117,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final repoName = segments[1].replaceAll('.git', '');
 
-      print(owner);
-      print(repoName);
-
       final repoData = await GithubService.fetchRepo(owner, repoName);
 
-      print(repoData);
-
       final languageData = await GithubService.fetchLanguages(owner, repoName);
-
-      print(languageData);
 
       setState(() {
         repo = repoData;
@@ -137,10 +129,40 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoading = false;
       });
     } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  // =========================
+  // AI PORTFOLIO GENERATOR
+  // =========================
+
+  Future<void> generateAIPortfolio() async {
+    if (usernameController.text.trim().isEmpty) {
+      return;
+    }
+
+    setState(() {
+      isGeneratingAI = true;
+    });
+
+    try {
+      final response = await Dio().post(
+        'http://192.168.110.196:8000/ai/generate/',
+        data: {"username": usernameController.text.trim()},
+      );
+
+      setState(() {
+        aiPortfolio = response.data;
+        isGeneratingAI = false;
+      });
+    } catch (e) {
       print(e);
 
       setState(() {
-        isLoading = false;
+        isGeneratingAI = false;
       });
     }
   }
@@ -152,7 +174,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       appBar: AppBar(
         elevation: 0,
-
         backgroundColor: Colors.transparent,
 
         flexibleSpace: Container(
@@ -164,8 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
         title: const Text(
-          'GitHub Dashboard',
-
+          'AI GitHub Dashboard',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
 
@@ -174,7 +194,6 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             onPressed: logout,
-
             icon: const Icon(Icons.logout, color: Colors.white),
           ),
         ],
@@ -188,25 +207,129 @@ class _HomeScreenState extends State<HomeScreen> {
 
           children: [
             // =========================
+            // HERO SECTION
+            // =========================
+            Container(
+              width: double.infinity,
+
+              padding: const EdgeInsets.all(28),
+
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xff6C63FF), Color(0xff8E7CFF)],
+                ),
+
+                borderRadius: BorderRadius.circular(30),
+              ),
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Colors.white, size: 34),
+
+                      SizedBox(width: 12),
+
+                      Expanded(
+                        child: Text(
+                          "AI Resume Generator",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  const Text(
+                    "Generate AI-powered resume, ATS analysis, developer insights, portfolio descriptions and career recommendations from GitHub.",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+
+                    children: [
+                      _buildFeatureChip("AI Resume"),
+                      _buildFeatureChip("ATS Score"),
+                      _buildFeatureChip("Portfolio"),
+                      _buildFeatureChip("Career Analysis"),
+                      _buildFeatureChip("Skill Detection"),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  _buildInputField(
+                    controller: usernameController,
+                    hint: 'Enter GitHub Username',
+                    icon: Icons.person,
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  SizedBox(
+                    width: double.infinity,
+
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+
+                      onPressed: generateAIPortfolio,
+
+                      child: isGeneratingAI
+                          ? const CircularProgressIndicator()
+                          : const Text(
+                              "Generate AI Portfolio",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 35),
+
+            // =========================
             // PROFILE ANALYZER
             // =========================
             const Text(
               'GitHub Profile Analyzer',
-
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 20),
 
             _buildInputField(
-              controller: usernameController,
-
+              controller: profileUsernameController,
               hint: 'Enter GitHub Username',
-
-              icon: Icons.person,
+              icon: Icons.person_outline,
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 20),
 
             _buildButton(title: 'Analyze Profile', onTap: analyzeProfile),
 
@@ -217,7 +340,6 @@ class _HomeScreenState extends State<HomeScreen> {
             // =========================
             const Text(
               'Repository Analyzer',
-
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
 
@@ -225,9 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             _buildInputField(
               controller: repoController,
-
               hint: 'Enter GitHub Repo URL',
-
               icon: Icons.link,
             ),
 
@@ -240,201 +360,323 @@ class _HomeScreenState extends State<HomeScreen> {
             if (isLoading) const Center(child: CircularProgressIndicator()),
 
             // =========================
-            // PROFILE CARD
+            // PROFILE DETAILS
             // =========================
             if (profile != null)
               Container(
-                width: double.infinity,
+                margin: const EdgeInsets.only(top: 35),
 
                 padding: const EdgeInsets.all(24),
 
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.deepPurple.shade500,
-
-                      Colors.purple.shade300,
-                    ],
-                  ),
-
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(30),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 10),
+                  ],
                 ),
 
                 child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 55,
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
-                      backgroundImage: NetworkImage(profile!['avatar']),
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 38,
+                          backgroundImage: NetworkImage(profile!['avatar']),
+                        ),
+
+                        const SizedBox(width: 18),
+
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                            children: [
+                              Text(
+                                profile!['name']?.toString() ?? 'No Name',
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(height: 6),
+
+                              Text(
+                                "@${profile!['username']?.toString() ?? 'N/A'}",
+                                style: TextStyle(color: Colors.grey.shade700),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              Text(
+                                profile!['bio']?.toString() ??
+                                    'No bio available',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 15,
+                      mainAxisSpacing: 15,
+                      childAspectRatio: 1.4,
+
+                      children: [
+                        _buildStatCard(
+                          "Followers",
+                          (profile!['followers'] ?? 0).toString(),
+                          Icons.people,
+                        ),
+
+                        _buildStatCard(
+                          "Following",
+                          (profile!['following'] ?? 0).toString(),
+                          Icons.person_add,
+                        ),
+
+                        _buildStatCard(
+                          "Repositories",
+                          (profile!['public_repos'] ?? 0).toString(),
+                          Icons.folder,
+                        ),
+
+                        _buildStatCard(
+                          "Gists",
+                          (profile!['public_gists'] ?? 0).toString(),
+                          Icons.code,
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    const Text(
+                      "Repositories",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
 
                     const SizedBox(height: 20),
 
-                    Text(
-                      profile!['name'] ?? '',
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: repos.length > 5 ? 5 : repos.length,
 
-                      style: const TextStyle(
-                        fontSize: 28,
+                      itemBuilder: (context, index) {
+                        final repo = repos[index];
 
-                        fontWeight: FontWeight.bold,
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
 
-                        color: Colors.white,
-                      ),
-                    ),
+                          padding: const EdgeInsets.all(20),
 
-                    const SizedBox(height: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffF5F7FB),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
 
-                    Text(
-                      '@${profile!['username']}',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
 
-                      style: const TextStyle(
-                        color: Colors.white70,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.book,
+                                    color: Colors.deepPurple,
+                                  ),
 
-                        fontSize: 16,
-                      ),
-                    ),
+                                  const SizedBox(width: 10),
 
-                    const SizedBox(height: 14),
+                                  Expanded(
+                                    child: Text(
+                                      repo['name'],
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
 
-                    Text(
-                      profile!['bio'] ?? '',
+                              const SizedBox(height: 10),
 
-                      textAlign: TextAlign.center,
+                              Text(repo['description'] ?? 'No description'),
 
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                    ),
+                              const SizedBox(height: 15),
 
-                    const SizedBox(height: 25),
+                              Row(
+                                children: [
+                                  _buildMiniStat(
+                                    Icons.star,
+                                    (repo['stars'] ?? 0).toString(),
+                                  ),
 
-                    Wrap(
-                      spacing: 15,
+                                  _buildMiniStat(
+                                    Icons.call_split,
+                                    (repo['forks'] ?? 0).toString(),
+                                  ),
 
-                      runSpacing: 15,
+                                  _buildMiniStat(
+                                    Icons.remove_red_eye,
+                                    (repo['watchers'] ?? 0).toString(),
+                                  ),
 
-                      children: [
-                        _buildStatCard('Followers', '${profile!['followers']}'),
+                                  const SizedBox(width: 20),
 
-                        _buildStatCard('Following', '${profile!['following']}'),
-
-                        _buildStatCard(
-                          'Repositories',
-                          '${profile!['public_repos']}',
-                        ),
-
-                        _buildStatCard(
-                          'Location',
-                          '${profile!['location'] ?? 'N/A'}',
-                        ),
-
-                        _buildStatCard(
-                          'Company',
-                          '${profile!['company'] ?? 'N/A'}',
-                        ),
-
-                        _buildStatCard(
-                          'Public Gists',
-                          '${profile!['public_gists'] ?? '0'}',
-                        ),
-                      ],
+                                  _buildMiniStat(
+                                    Icons.code,
+                                    repo['language']?.toString() ?? 'N/A',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
 
             // =========================
-            // TOP REPOSITORIES
+            // AI ANALYSIS
             // =========================
-            if (repos.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            if (aiPortfolio != null)
+              Container(
+                margin: const EdgeInsets.only(top: 35),
 
-                children: [
-                  const SizedBox(height: 35),
+                padding: const EdgeInsets.all(24),
 
-                  const Text(
-                    'Top Repositories',
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 10),
+                  ],
+                ),
 
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
 
-                  const SizedBox(height: 20),
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.psychology,
+                          color: Colors.deepPurple,
+                          size: 32,
+                        ),
 
-                  ListView.builder(
-                    shrinkWrap: true,
+                        SizedBox(width: 10),
 
-                    physics: const NeverScrollableScrollPhysics(),
+                        Text(
+                          "AI Developer Analysis",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
 
-                    itemCount: repos.length,
+                    const SizedBox(height: 30),
 
-                    itemBuilder: (context, index) {
-                      final repo = repos[index];
+                    _buildAISection("About Me", aiPortfolio!['about_me'] ?? ''),
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 18),
+                    _buildAISection(
+                      "Resume Summary",
+                      aiPortfolio!['resume_summary'] ?? '',
+                    ),
 
-                        padding: const EdgeInsets.all(20),
+                    _buildAISection(
+                      "Developer Type",
+                      aiPortfolio!['developer_type'] ?? '',
+                    ),
 
-                        decoration: BoxDecoration(
-                          color: Colors.white,
+                    _buildAISection(
+                      "Experience Level",
+                      aiPortfolio!['experience_level'] ?? '',
+                    ),
 
-                          borderRadius: BorderRadius.circular(24),
+                    const SizedBox(height: 25),
 
-                          boxShadow: [
-                            BoxShadow(color: Colors.black12, blurRadius: 8),
+                    const Text(
+                      "ATS Score",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.green.shade400,
+                            Colors.green.shade700,
                           ],
                         ),
 
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
 
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-
-                                children: [
-                                  Text(
-                                    repo['name'],
-
-                                    style: const TextStyle(
-                                      fontSize: 18,
-
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 10),
-
-                                  Text(
-                                    repo['language'] ?? 'Unknown',
-
-                                    style: TextStyle(
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            Column(
-                              children: [
-                                const Icon(Icons.star, color: Colors.orange),
-
-                                const SizedBox(height: 5),
-
-                                Text('${repo['stars']}'),
-                              ],
-                            ),
-                          ],
+                      child: Center(
+                        child: Text(
+                          aiPortfolio!['ats_score'].toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 38,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    _buildListSection("Strengths", aiPortfolio!['strengths']),
+
+                    _buildListSection("Weaknesses", aiPortfolio!['weaknesses']),
+
+                    _buildListSection(
+                      "Recommended Learning",
+                      aiPortfolio!['learn_next'],
+                    ),
+
+                    _buildListSection(
+                      "Career Roles",
+                      aiPortfolio!['career_roles'],
+                    ),
+                  ],
+                ),
               ),
 
             // =========================
-            // REPO DETAILS
+            // REPO ANALYSIS
             // =========================
             if (repo != null)
               Container(
@@ -444,225 +686,154 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 decoration: BoxDecoration(
                   color: Colors.white,
-
                   borderRadius: BorderRadius.circular(30),
-
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 10),
+                  ],
                 ),
 
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
 
                   children: [
-                    Text(
-                      repo!['name'] ?? '',
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.analytics,
+                          color: Colors.deepPurple,
+                          size: 30,
+                        ),
 
-                      style: const TextStyle(
-                        fontSize: 28,
+                        SizedBox(width: 10),
 
-                        fontWeight: FontWeight.bold,
-                      ),
+                        Text(
+                          "Repository Insights",
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 30),
 
-                    Text(
-                      repo!['description'] ?? 'No Description',
+                    _buildRepoInfo(
+                      "Repository Name",
+                      repo!['name']?.toString() ?? 'N/A',
+                    ),
 
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
+                    _buildRepoInfo(
+                      "Description",
+                      repo!['description']?.toString() ?? 'No description',
+                    ),
 
-                        fontSize: 15,
-                      ),
+                    _buildRepoInfo(
+                      "Default Branch",
+                      repo!['default_branch']?.toString() ?? 'N/A',
+                    ),
+
+                    _buildRepoInfo(
+                      "Created At",
+                      repo!['created_at']?.toString() ?? 'N/A',
+                    ),
+
+                    _buildRepoInfo(
+                      "Updated At",
+                      repo!['updated_at']?.toString() ?? 'N/A',
                     ),
 
                     const SizedBox(height: 25),
 
-                    Wrap(
-                      spacing: 15,
-                      runSpacing: 15,
-
-                      children: [
-                        _buildStatCard('Stars', '${repo!['stars']}'),
-
-                        _buildStatCard('Forks', '${repo!['forks']}'),
-
-                        _buildStatCard('Watchers', '${repo!['watchers']}'),
-
-                        _buildStatCard('Issues', '${repo!['issues']}'),
-                      ],
-                    ),
-
-                    const SizedBox(height: 35),
-
-                    const Text(
-                      'Repository Health Score',
-
-                      style: TextStyle(
-                        fontSize: 22,
-
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-
-                      child: LinearProgressIndicator(
-                        value: calculateHealthScore() / 100,
-
-                        minHeight: 20,
-
-                        backgroundColor: Colors.grey.shade300,
-
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          calculateHealthScore() > 70
-                              ? Colors.green
-                              : calculateHealthScore() > 40
-                              ? Colors.orange
-                              : Colors.red,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Text(
-                      '${calculateHealthScore().toStringAsFixed(1)} / 100',
-
-                      style: const TextStyle(
-                        fontSize: 18,
-
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 35),
-
-                    Wrap(
-                      spacing: 15,
-                      runSpacing: 15,
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 15,
+                      mainAxisSpacing: 15,
+                      childAspectRatio: 1.4,
 
                       children: [
                         _buildStatCard(
-                          'Language',
-                          '${repo!['language'] ?? 'N/A'}',
+                          "Stars",
+                          (repo!['stars'] ?? 0).toString(),
+                          Icons.star,
                         ),
 
-                        _buildStatCard('Size', '${repo!['size']} KB'),
+                        _buildStatCard(
+                          "Forks",
+                          (repo!['forks'] ?? 0).toString(),
+                          Icons.call_split,
+                        ),
 
-                        _buildStatCard('Branch', '${repo!['default_branch']}'),
+                        _buildStatCard(
+                          "Open Issues",
+                          (repo!['open_issues_count'] ?? 0).toString(),
+                          Icons.bug_report,
+                        ),
 
-                        _buildStatCard('Created', '${repo!['created_at']}'),
+                        _buildStatCard(
+                          "Watchers",
+                          (repo!['watchers'] ?? 0).toString(),
+                          Icons.remove_red_eye,
+                        ),
                       ],
                     ),
 
                     const SizedBox(height: 35),
 
                     const Text(
-                      'Language Distribution',
-
+                      "Language Distribution",
                       style: TextStyle(
                         fontSize: 22,
-
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
                     const SizedBox(height: 25),
 
-                    if (languages == null || languages!.isEmpty)
-                      Container(
-                        height: 220,
+                    SizedBox(
+                      height: 300,
 
-                        alignment: Alignment.center,
-
-                        child: const Text(
-                          'No Language Data Found',
-
-                          style: TextStyle(
-                            fontSize: 18,
-
-                            fontWeight: FontWeight.w600,
-                          ),
+                      child: PieChart(
+                        PieChartData(
+                          sections: _buildPieSections(),
+                          centerSpaceRadius: 60,
+                          sectionsSpace: 3,
                         ),
-                      )
-                    else
-                      Column(
-                        children: [
-                          SizedBox(
-                            height: 280,
-
-                            child: PieChart(
-                              PieChartData(
-                                sections: _buildPieSections(),
-
-                                sectionsSpace: 3,
-
-                                centerSpaceRadius: 65,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 25),
-
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-
-                            children: languages!.entries.map((e) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-
-                                  vertical: 10,
-                                ),
-
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-
-                                  borderRadius: BorderRadius.circular(14),
-
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black12,
-
-                                      blurRadius: 5,
-                                    ),
-                                  ],
-                                ),
-
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 6,
-
-                                      backgroundColor: Colors.deepPurple,
-                                    ),
-
-                                    const SizedBox(width: 8),
-
-                                    Text(
-                                      e.key,
-
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
                       ),
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+
+                      children: languages!.entries.map((e) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple.shade50,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+
+                          child: Text(
+                            "${e.key} : ${e.value}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
                 ),
               ),
+
+            const SizedBox(height: 50),
           ],
         ),
       ),
@@ -675,9 +846,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildInputField({
     required TextEditingController controller,
-
     required String hint,
-
     required IconData icon,
   }) {
     return TextField(
@@ -685,18 +854,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       decoration: InputDecoration(
         hintText: hint,
-
         filled: true,
-
         fillColor: Colors.white,
-
         prefixIcon: Icon(icon),
 
         contentPadding: const EdgeInsets.symmetric(vertical: 18),
 
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-
           borderSide: BorderSide.none,
         ),
       ),
@@ -726,15 +891,211 @@ class _HomeScreenState extends State<HomeScreen> {
 
         child: Text(
           title,
-
           style: const TextStyle(
             color: Colors.white,
-
             fontSize: 16,
-
             fontWeight: FontWeight.bold,
           ),
         ),
+      ),
+    );
+  }
+
+  // =========================
+  // FEATURE CHIP
+  // =========================
+
+  Widget _buildFeatureChip(String title) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(30),
+      ),
+
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  // =========================
+  // AI SECTION
+  // =========================
+
+  Widget _buildAISection(String title, String content) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            content,
+            style: TextStyle(
+              color: Colors.grey.shade800,
+              height: 1.6,
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================
+  // LIST SECTION
+  // =========================
+
+  Widget _buildListSection(String title, List<dynamic>? items) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 14),
+
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+
+            children: (items ?? [])
+                .map<Widget>(
+                  (e) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+
+                    decoration: BoxDecoration(
+                      color: Colors.deepPurple.shade50,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+
+                    child: Text(
+                      e.toString(),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================
+  // STAT CARD
+  // =========================
+
+  Widget _buildStatCard(String title, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xff6C63FF), Color(0xff8E7CFF)],
+        ),
+
+        borderRadius: BorderRadius.circular(24),
+      ),
+
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+
+        children: [
+          Icon(icon, color: Colors.white, size: 30),
+
+          const SizedBox(height: 14),
+
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================
+  // MINI STAT
+  // =========================
+
+  Widget _buildMiniStat(IconData icon, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.deepPurple),
+
+        const SizedBox(width: 5),
+
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  // =========================
+  // REPO INFO
+  // =========================
+
+  Widget _buildRepoInfo(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          Text(
+            title,
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 15),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              height: 1.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -757,10 +1118,8 @@ class _HomeScreenState extends State<HomeScreen> {
       const Color(0xffFF6584),
       const Color(0xff4CAF50),
       const Color(0xffFF9800),
-      const Color(0xff00BCD4),
-      const Color(0xff9C27B0),
-      const Color(0xff3F51B5),
-      const Color(0xffE91E63),
+      Colors.blue,
+      Colors.teal,
     ];
 
     int index = 0;
@@ -772,19 +1131,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final section = PieChartSectionData(
         color: colors[index % colors.length],
-
         value: percentage,
-
-        title: percentage > 5 ? '${percentage.toStringAsFixed(1)}%' : '',
-
+        title: '${percentage.toStringAsFixed(1)}%',
         radius: 100,
-
         titleStyle: const TextStyle(
-          fontSize: 12,
-
-          fontWeight: FontWeight.bold,
-
           color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
       );
 
@@ -792,96 +1144,5 @@ class _HomeScreenState extends State<HomeScreen> {
 
       return section;
     }).toList();
-  }
-  // =========================
-  // HEALTH SCORE
-  // =========================
-
-  double calculateHealthScore() {
-    if (repo == null) return 0;
-
-    double score = 0;
-
-    score += (repo!['stars'] ?? 0) * 0.45;
-
-    score += (repo!['forks'] ?? 0) * 0.30;
-
-    score += (repo!['watchers'] ?? 0) * 0.15;
-
-    score -= (repo!['issues'] ?? 0) * 0.10;
-
-    if (score > 100) {
-      score = 100;
-    }
-
-    if (score < 0) {
-      score = 0;
-    }
-
-    return score;
-  }
-
-  // =========================
-  // STAT CARD
-  // =========================
-
-  Widget _buildStatCard(String title, String value) {
-    return Container(
-      width: MediaQuery.of(context).size.width * 0.38,
-
-      padding: const EdgeInsets.all(18),
-
-      decoration: BoxDecoration(
-        color: Colors.white,
-
-        borderRadius: BorderRadius.circular(22),
-
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-
-            blurRadius: 12,
-
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-
-        children: [
-          Text(
-            title,
-
-            style: TextStyle(
-              color: Colors.grey.shade600,
-
-              fontSize: 14,
-
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Text(
-            value,
-
-            maxLines: 2,
-
-            overflow: TextOverflow.ellipsis,
-
-            style: const TextStyle(
-              color: Colors.black87,
-
-              fontSize: 20,
-
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -15,6 +15,8 @@ urlpatterns = [
 
     path('users/', include('users.urls')),
     path('github/',include('github_api.urls')),
+    path('', include('django_prometheus.urls')),  
+    path('ai/', include('ai_portfolio.urls')),  
     # path("auth/github/", include("github_auth.urls")),
     # JWT Routes
     path(
