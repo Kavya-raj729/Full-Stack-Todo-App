@@ -39,23 +39,27 @@ class _HomeScreenState extends State<HomeScreen> {
   // LOGOUT
   // =========================
 
-  Future<void> logout() async {
-    bool success = await ApiService.logout();
+ Future<void> logout() async {
+  try {
+    await ApiService.logout();
 
-    if (success) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+    SharedPreferences prefs =
+        await SharedPreferences.getInstance();
 
-      await prefs.clear();
+    await prefs.clear();
 
-      if (!mounted) return;
+    if (!context.mounted) return;
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    }
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const LoginScreen(),
+      ),
+      (route) => false,
+    );
+  } catch (e) {
+    print("Logout Error: $e");
   }
+}
 
   // =========================
   // ANALYZE PROFILE

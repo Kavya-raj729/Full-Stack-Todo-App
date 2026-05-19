@@ -133,8 +133,6 @@ class ApiService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print(e);
-
       return false;
     }
   }
