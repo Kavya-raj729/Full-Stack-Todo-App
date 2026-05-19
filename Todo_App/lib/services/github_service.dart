@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GithubService {
-  static const String baseUrl = 'http://192.168.110.196:8000';
+  static const String baseUrl = 'http://YOUR_IP:8000';
 
   // =========================
   // PROFILE
